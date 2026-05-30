@@ -1,0 +1,19 @@
+{
+  "name": "edureach-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EduReach Platform - Complete College Intelligence Platform",
+  "workspaces": [
+    "edureach-platform",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=edureach-platform\" \"npm run dev --workspace=server\"",
+    "build": "npm run build --workspace=edureach-platform && npm run build --workspace=server",
+    "start": "npm run start --workspace=server",
+    "lint": "npm run lint --workspace=edureach-platform"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
