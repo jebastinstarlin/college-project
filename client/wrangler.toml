@@ -1,0 +1,3 @@
+name = "edureach-platform"
+compatibility_date = "2026-05-30"
+assets = { directory = "../edureach-platform/dist" }
