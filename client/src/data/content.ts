@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: "EduReach",
   tagline: "Your Gateway to Smarter Education Decisions",
-  established: "Est. 2005",
+  established: "Est. 2006",
 };
 
 export const images = {
@@ -44,13 +44,13 @@ export const navLinks = [
 // ---- ABOUT ----
 export const aboutContent = {
   title: "About EduReach College",
-  subtitle: "Empowering Futures Since 2005",
+  subtitle: "Empowering Futures Since 2006",
   description:
-    "EduReach College is a premier engineering and technology institution established in 2005, located in Hyderabad, Telangana. Affiliated with JNTU Hyderabad and approved by AICTE, New Delhi, our 25-acre campus features smart classrooms, advanced laboratories, and a central library with 50,000+ books.",
+    "EduReach College is a premier engineering and technology institution established in 2006, located in Thoothukudi, Tamil Nadu. Affiliated with JNTU Hyderabad and approved by AICTE, New Delhi, our 25-acre campus features smart classrooms, advanced laboratories, and a central library with 50,000+ books.",
   highlights: [
     { value: "150+", label: "Experienced Professors" },
     { value: "15:1", label: "Student-Faculty Ratio" },
-    { value: "Top 50", label: "In Telangana" },
+    { value: "Top 50", label: "In Tamil Nadu" },
     { value: "10,000+", label: "Alumni Worldwide" },
   ],
 };
@@ -163,9 +163,9 @@ export const deptPlacements = [
 // ---- CONTACT ----
 export const contactInfo = {
   email: "admissions@edureach.edu.in",
-  phone: "+91-9876543210",
+  phone: "+91-9943124031",
   general: "info@edureach.edu.in",
-  address: "Hyderabad, Telangana, India",
+  address: "Thoothukudi, Tamil Nadu, India",
 };
 
 export const eventsGallery = [

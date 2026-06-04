@@ -49,7 +49,7 @@ const getVectorStore = async () => {
 
   return new MongoDBAtlasVectorSearch(getEmbeddings(), {
     collection: collection as any,
-    indexName: "edureach_vector_index",
+    indexName: "edureachvectorindex",
     textKey: "text",
     embeddingKey: "embedding",
   });
@@ -118,7 +118,7 @@ export const initializeKnowledgeBase = async (): Promise<void> => {
   // EMBED + STORE
   const vectorStore = new MongoDBAtlasVectorSearch(embeddings, {
     collection: collection as any,
-    indexName: "edureach_vector_index",
+    indexName: "edureachvectorindex",
     textKey: "text",
     embeddingKey: "embedding",
   });

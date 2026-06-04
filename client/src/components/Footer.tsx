@@ -13,7 +13,7 @@ export default function Footer() {
               <span className="font-heading text-xl font-bold">EduReach</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Premier engineering institution established in 2005. AICTE approved, JNTU Hyderabad affiliated.
+              Premier engineering institution established in 200. AICTE approved, JNTU Hyderabad affiliated.
             </p>
           </div>
 

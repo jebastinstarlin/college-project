@@ -9,7 +9,7 @@ export default function HeroSection() {
       <div className="relative z-10 h-full flex items-center">
         <div className="max-w-7xl mx-auto px-4 w-full">
           <p className="text-white/80 text-sm tracking-widest uppercase mb-4">
-            {siteConfig.established} · Hyderabad, Telangana
+            {siteConfig.established} · Thoothukudi, Tamil Nadu
           </p>
           <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl text-white font-bold leading-tight mb-6">
             Welcome to <br />
