@@ -162,11 +162,12 @@ const createRetrieveTool = (vectorStore: MongoDBAtlasVectorSearch) => {
 // --- Get RAG Response ---
 export const getRAGResponse = async (question: string): Promise<string> => {
   try {
+    console.log("Question received:", question);
     const vectorStore = await getVectorStore();
     const retrieve = createRetrieveTool(vectorStore);
 
     const model = new ChatGoogleGenerativeAI({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       temperature: 0.7,
     });
 
