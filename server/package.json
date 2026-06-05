@@ -13,17 +13,19 @@
   "license": "MIT",
   "description": "EduReach College Intelligence Platform — Backend (Node.js 24)",
   "dependencies": {
-    "@langchain/classic": "1.0.19",
+    "@langchain/classic": "^1.0.34",
+    "@langchain/community": "^1.1.29",
     "@langchain/google-genai": "2.1.20",
+    "@langchain/groq": "^1.2.1",
     "@langchain/mongodb": "1.1.0",
     "@langchain/textsplitters": "1.0.1",
     "bcryptjs": "3.0.3",
     "cors": "^2.8.6",
     "express": "5.2.1",
     "jsonwebtoken": "9.0.3",
-    "langchain": "1.2.26",
+    "langchain": "^1.4.4",
     "mongoose": "9.2.1",
-    "nanoid": "3.0.0"
+    "nanoid": "^3.3.12"
   },
   "devDependencies": {
     "@types/cors": "2.8.19",

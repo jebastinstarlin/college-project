@@ -2,22 +2,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { MongoClient } from "mongodb";
 import { createAgent, tool } from "langchain";
-import {
-  ChatGoogleGenerativeAI,
-  GoogleGenerativeAIEmbeddings,
-} from "@langchain/google-genai";
-import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
+import { ChatGroq } from "@langchain/groq";
 import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { z } from "zod";
 
 
-// --- MongoDB Native Client (for LangChain vector operations) ---
-// ---- __dirname for ESM ----
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---- MongoDB native client ----
 let mongoClient: MongoClient | null = null;
 
 const getMongoClient = async (): Promise<MongoClient> => {
@@ -29,124 +22,58 @@ const getMongoClient = async (): Promise<MongoClient> => {
 };
 
 
-// ---- Google GenAI Embeddings ----
-// gemini-embedding-001 → default 3072 dimensions (FREE, same API key as Gemini chat)
-const getEmbeddings = () => {
-  if (!process.env.GOOGLE_API_KEY) {
-    throw new Error("GOOGLE_API_KEY is not set in .env!");
-  }
-  return new GoogleGenerativeAIEmbeddings({
-    apiKey: process.env.GOOGLE_API_KEY,
-    model: "gemini-embedding-001",
-  });
-};
+// ✅ Simple in-memory document store — no API needed
+let knowledgeChunks: string[] = [];
 
+const loadKnowledgeBase = async (): Promise<void> => {
+  if (knowledgeChunks.length > 0) return;
 
-// ---- Vector Store ----
-const getVectorStore = async () => {
-  const client = await getMongoClient();
-  const collection = client.db("edureach_db").collection("knowledge_docs");
-
-  return new MongoDBAtlasVectorSearch(getEmbeddings(), {
-    collection: collection as any,
-    indexName: "edureachvectorindex",
-    textKey: "text",
-    embeddingKey: "embedding",
-  });
-};
-
-
-
-// --- Initialize Knowledge Base ---
-
-// A) INDEXING — runs ONCE at server startup
-// ============================================
-export const initializeKnowledgeBase = async (): Promise<void> => {
-  const client = await getMongoClient();
-  const collection = client.db("edureach_db").collection("knowledge_docs");
-
-  // Check if docs exist WITH valid (non-empty) embeddings
-  const docWithEmbedding = await collection.findOne({
-    embedding: { $exists: true, $not: { $size: 0 } },
-  });
-
-  if (docWithEmbedding) {
-    const count = await collection.countDocuments();
-    console.log(` Knowledge base ready (${count} chunks with embeddings)`);
-    return;
-  }
-
-  // If docs exist but embeddings are empty → delete and re-index
-  const existingCount = await collection.countDocuments();
-  if (existingCount > 0) {
-    console.log(` Found ${existingCount} chunks with EMPTY embeddings — deleting & re-indexing...`);
-    await collection.deleteMany({});
-  }
-
-  console.log(" Indexing knowledge base...");
-
-  // Verify API key FIRST with a test embedding
-  const embeddings = getEmbeddings();
-  try {
-    const testResult = await embeddings.embedQuery("test");
-    console.log(` API key OK — embedding dimensions: ${testResult.length}`);
-  } catch (error: any) {
-    console.error(" Embedding test failed!");
-    console.error("   Error:", error.message || error);
-    console.error("   Get key from: https://aistudio.google.com/apikey");
-    throw error;
-  }
-
-  // LOAD
   const filePath = path.join(__dirname, "../../knowledge-base/edureach-knowledge.txt");
   const loader = new TextLoader(filePath);
   const docs = await loader.load();
-  if (docs.length === 0) {
-    throw new Error("No documents found in knowledge base file");
-  }
-  const totalCharacters = docs.reduce((sum, doc) => sum + doc.pageContent.length, 0);
-  console.log(`    Loaded ${totalCharacters} characters`);
 
-  // SPLIT
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1000,
     chunkOverlap: 200,
   });
   const allSplits = await splitter.splitDocuments(docs);
-  console.log(`    Split into ${allSplits.length} chunks`);
+  knowledgeChunks = allSplits.map((doc) => doc.pageContent);
 
-  // EMBED + STORE
-  const vectorStore = new MongoDBAtlasVectorSearch(embeddings, {
-    collection: collection as any,
-    indexName: "edureachvectorindex",
-    textKey: "text",
-    embeddingKey: "embedding",
-  });
-
-  await vectorStore.addDocuments(allSplits);
-
-  // VERIFY
-  const verifyDoc = await collection.findOne({
-    embedding: { $exists: true, $not: { $size: 0 } },
-  });
-
-  if (verifyDoc && Array.isArray(verifyDoc.embedding) && verifyDoc.embedding.length > 0) {
-    console.log(`    ${allSplits.length} chunks stored (${verifyDoc.embedding.length}D embeddings)`);
-    console.log(`     IMPORTANT: Create Atlas Vector Search index with numDimensions: ${verifyDoc.embedding.length}`);
-  } else {
-    await collection.deleteMany({});
-    throw new Error(" Embeddings are empty! Google API returned no vectors.");
-  }
+  console.log(` Knowledge base loaded (${knowledgeChunks.length} chunks)`);
 };
 
 
-const createRetrieveTool = (vectorStore: MongoDBAtlasVectorSearch) => {
+// ✅ Simple keyword search — no embedding API needed
+const searchKnowledge = (query: string, topK: number = 3): string[] => {
+  const queryWords = query.toLowerCase().split(/\s+/);
+
+  const scored = knowledgeChunks.map((chunk) => {
+    const chunkLower = chunk.toLowerCase();
+    const score = queryWords.reduce((acc, word) => {
+      return acc + (chunkLower.includes(word) ? 1 : 0);
+    }, 0);
+    return { chunk, score };
+  });
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
+    .map((item) => item.chunk);
+};
+
+
+export const initializeKnowledgeBase = async (): Promise<void> => {
+  await loadKnowledgeBase();
+  console.log(" Knowledge base ready!");
+};
+
+
+const createRetrieveTool = () => {
   return tool(
     async ({ query }: { query: string }) => {
-      const retrievedDocs = await vectorStore.similaritySearch(query, 3);
-      return retrievedDocs
-        .map((doc) => `Source: ${doc.metadata.source}\nContent: ${doc.pageContent}`)
-        .join("\n\n");
+      const results = searchKnowledge(query, 3);
+      if (results.length === 0) return "No relevant information found.";
+      return results.map((chunk) => `Content: ${chunk}`).join("\n\n");
     },
     {
       name: "retrieve",
@@ -159,15 +86,15 @@ const createRetrieveTool = (vectorStore: MongoDBAtlasVectorSearch) => {
 };
 
 
-// --- Get RAG Response ---
 export const getRAGResponse = async (question: string): Promise<string> => {
   try {
     console.log("Question received:", question);
-    const vectorStore = await getVectorStore();
-    const retrieve = createRetrieveTool(vectorStore);
+    await loadKnowledgeBase();
+    const retrieve = createRetrieveTool();
 
-    const model = new ChatGoogleGenerativeAI({
-      model: "gemini-1.5-flash",
+    const model = new ChatGroq({
+      apiKey: process.env.GROQ_API_KEY,
+      model: "llama-3.3-70b-versatile",
       temperature: 0.7,
     });
 
@@ -196,10 +123,9 @@ export const getRAGResponse = async (question: string): Promise<string> => {
     return typeof lastMessage.content === "string"
       ? lastMessage.content
       : JSON.stringify(lastMessage.content);
-  } catch (error) {
+
+  } catch (error: any) {
     console.error(" RAG Agent Error:", error);
-    return "I'm having trouble right now. Please try again or click 'Talk to Us'.";
+    return `Error: ${error?.message || JSON.stringify(error)}`;
   }
 };
-
-
